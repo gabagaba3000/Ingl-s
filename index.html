@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Blackwood Manor Mystery - Retro Adventure</title>
+    <!-- Fontes Pixel Art / MS-DOS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-panel: #14141f;
+            --bg-screen: #1a1a2e;
+            --border-light: #8b9bb4;
+            --border-dark: #3a4466;
+            --accent-gold: #f4b41b;
+            --accent-green: #38b764;
+            --accent-red: #e43b44;
+            --accent-blue: #3b5dc9;
+            --text-main: #f4f4f4;
+            --text-muted: #94b0c2;
+            --text-pt: #73eff7;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'VT323', monospace;
+            font-size: 20px;
+            line-height: 1.4;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            overflow-x: hidden;
+        }
+
+        /* Efeito de linhas CRT sutil */
+        body::after {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 999;
+            background-size: 100% 3px, 6px 100%;
+            pointer-events: none;
+        }
+
+        /* Container Principal Estilo MS-DOS Window */
+        #game-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--bg-panel);
+            border: 4px solid var(--border-light);
+            box-shadow: inset -4px -4px 0px var(--border-dark), 0 10px 30px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Barra de Título Superior */
+        header {
+            background-color: var(--accent-blue);
+            color: #fff;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px solid var(--border-light);
+            font-family: 'Press Start 2P', cursive;
+            font-size: 11px;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-shadow: 2px 2px 0px #000;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* Botões Estilo Retrô */
+        .retro-btn {
+            background-color: #262b44;
+            color: var(--text-main);
+            border: 2px solid var(--border-light);
+            box-shadow: inset -2px -2px 0px var(--border-dark);
+            font-family: 'VT323', monospace;
+            font-size: 18px;
+            padding: 6px 12px;
+            cursor: pointer;
+            transition: transform 0.05s, background-color 0.1s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-align: center;
+        }
+
+        .retro-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        .retro-btn:hover {
+            background-color: #3a4466;
+        }
+
+        .retro-btn.small {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 9px;
+            padding: 6px 8px;
+        }
+
+        .retro-btn.active {
+            background-color: var(--accent-gold);
+            color: #000;
+            font-weight: bold;
+            border-color: #fff;
+        }
+
+        .retro-btn.danger {
+            background-color: var(--accent-red);
+            color: #fff;
+        }
+
+        .retro-btn.success {
+            background-color: var(--accent-green);
+            color: #000;
+            font-weight: bold;
+        }
+
+        /* Visor Gráfico (Cena em Pixel Art SVG) */
+        #viewport {
+            width: 100%;
+            height: 220px;
+            background-color: var(--bg-screen);
+            border-bottom: 4px solid var(--border-light);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (min-width: 600px) {
+            #viewport {
+                height: 260px;
+            }
+        }
+
+        #scene-svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+            image-rendering: pixelated;
+        }
+
+        /* Etiqueta de Localização */
+        #location-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(10, 10, 15, 0.85);
+            border: 2px solid var(--accent-gold);
+            color: var(--accent-gold);
+            padding: 4px 10px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+            text-transform: uppercase;
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        /* Área de Diálogo e Narrativa */
+        #dialogue-box {
+            padding: 14px;
+            background-color: #101018;
+            border-bottom: 4px solid var(--border-light);
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .speaker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        #speaker-name {
+            color: var(--accent-gold);
+            font-family: 'Press Start 2P', cursive;
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+
+        #text-en {
+            font-size: 22px;
+            color: var(--text-main);
+            margin-bottom: 8px;
+            line-height: 1.35;
+        }
+
+        #text-pt {
+            font-size: 19px;
+            color: var(--text-pt);
+            background-color: rgba(59, 93, 201, 0.15);
+            border-left: 3px solid var(--text-pt);
+            padding: 6px 10px;
+            margin-top: 6px;
+            display: none;
+            animation: fadeIn 0.2s ease-in;
+        }
+
+        #text-pt.visible {
+            display: block;
+        }
+
+        .vocab-hint {
+            display: block;
+            font-size: 17px;
+            color: var(--accent-gold);
+            margin-top: 4px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Área de Escolhas / Ações */
+        #choices-container {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background-color: var(--bg-panel);
+        }
+
+        .choice-btn {
+            width: 100%;
+            text-align: left;
+            padding: 12px 14px;
+            font-size: 20px;
+            justify-content: flex-start;
+            line-height: 1.25;
+            min-height: 48px; /* Touch-friendly */
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .choice-en {
+            color: #fff;
+        }
+
+        .choice-pt {
+            color: var(--text-pt);
+            font-size: 17px;
+            margin-top: 2px;
+            display: none;
+        }
+
+        .choice-pt.visible {
+            display: block;
+        }
+
+        /* Barra Inferior: Navegação e Inventário */
+        #bottom-bar {
+            background-color: #0d0d14;
+            border-top: 4px solid var(--border-light);
+            padding: 10px 12px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        /* Modal de Inventário e Mapa */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 10, 15, 0.95);
+            z-index: 50;
+            display: none;
+            flex-direction: column;
+            padding: 16px;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-light);
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+            color: var(--accent-gold);
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .clue-card {
+            background-color: #1a1a2e;
+            border: 2px solid var(--border-light);
+            padding: 10px;
+        }
+
+        .clue-title {
+            color: var(--accent-gold);
+            font-weight: bold;
+            font-size: 21px;
+        }
+
+        .clue-desc-en {
+            color: #fff;
+            margin-top: 4px;
+        }
+
+        .clue-desc-pt {
+            color: var(--text-pt);
+            font-size: 18px;
+            margin-top: 4px;
+            border-top: 1px dashed var(--border-dark);
+            padding-top: 4px;
+        }
+
+        /* Notificação Toast */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--accent-gold);
+            color: #000;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+            padding: 10px 16px;
+            border: 3px solid #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+            z-index: 100;
+            display: none;
+            text-align: center;
+            max-width: 90%;
+        }
+
+        /* Tela Inicial */
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-screen);
+            z-index: 80;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .title-logo {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 18px;
+            color: var(--accent-gold);
+            text-shadow: 3px 3px 0px var(--accent-red);
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        @media (min-width: 600px) {
+            .title-logo {
+                font-size: 24px;
+            }
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 20px;
+            max-width: 500px;
+            margin-bottom: 24px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- Tela Inicial -->
+    <div id="start-screen">
+        <div style="font-size: 48px; margin-bottom: 12px;">🕯️🏰🔍</div>
+        <h1 class="title-logo">THE BLACKWOOD<br>MANOR MYSTERY</h1>
+        <p class="subtitle">
+            An interactive English detective adventure.<br>
+            <span style="color: var(--text-pt); font-size: 18px;">Explore a mansão, interrogue suspeitos e pratique seu inglês com tradução opcional!</span>
+        </p>
+        <button class="retro-btn success" style="font-size: 22px; padding: 14px 28px;" onclick="startGame()">
+            ▶ START INVESTIGATION
+        </button>
+    </div>
+
+    <!-- Cabeçalho -->
+    <header>
+        <div class="header-title">
+            <span>🕵️ BLACKWOOD.EXE</span>
+        </div>
+        <div class="header-controls">
+            <button id="btn-translate" class="retro-btn small" onclick="toggleTranslation()" title="Toggle Portuguese Translation">
+                🇧🇷 PT: OFF
+            </button>
+            <button id="btn-sound" class="retro-btn small" onclick="toggleMute()" title="Mute/Unmute Audio">
+                🔊 SFX
+            </button>
+        </div>
+    </header>
+
+    <!-- Visor Gráfico Pixel Art -->
+    <div id="viewport">
+        <div id="location-badge">ENTRANCE HALL</div>
+        <svg id="scene-svg" viewBox="0 0 320 140" preserveAspectRatio="xMidYMid slice"></svg>
+    </div>
+
+    <!-- Caixa de Diálogo -->
+    <div id="dialogue-box">
+        <div>
+            <div class="speaker-header">
+                <span id="speaker-name">NARRATOR</span>
+                <span id="clue-counter" style="color: var(--accent-green); font-size: 18px;">Clues: 0/4</span>
+            </div>
+            <div id="text-en">Welcome to Blackwood Manor.</div>
+            <div id="text-pt">
+                <span id="pt-content">Bem-vindo à Mansão Blackwood.</span>
+                <span id="pt-hint" class="vocab-hint"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botões de Escolha -->
+    <div id="choices-container"></div>
+
+    <!-- Barra Inferior de Navegação e Inventário -->
+    <div id="bottom-bar">
+        <div class="nav-group">
+            <button class="retro-btn" onclick="openModal('map-modal')">🗺️ MAP</button>
+            <button class="retro-btn" onclick="openModal('inv-modal')">🎒 CLUES (<span id="inv-count">0</span>)</button>
+        </div>
+        <button id="btn-accuse" class="retro-btn danger" onclick="startAccusation()" style="display: none;">
+            ⚖️ SOLVE CASE
+        </button>
+    </div>
+
+    <!-- Modal de Inventário (Pistas) -->
+    <div id="inv-modal" class="modal-overlay">
+        <div class="modal-header">
+            <span>🎒 COLLECTED CLUES</span>
+            <button class="retro-btn small danger" onclick="closeModals()">X</button>
+        </div>
+        <div id="inv-list" class="modal-body">
+            <p style="color: var(--text-muted);">No clues found yet. Explore the rooms and talk to people!</p>
+        </div>
+    </div>
+
+    <!-- Modal de Mapa (Navegação Rápida) -->
+    <div id="map-modal" class="modal-overlay">
+        <div class="modal-header">
+            <span>🗺️ MANOR FLOORPLAN</span>
+            <button class="retro-btn small danger" onclick="closeModals()">X</button>
+        </div>
+        <div class="modal-body">
+            <p style="color: var(--text-muted); margin-bottom: 6px;">Select a room to move / Escolha um cômodo:</p>
+            <button class="retro-btn choice-btn" onclick="goToRoom('hall')">
+                <span class="choice-en">🚪 Entrance Hall (Arthur, the Butler)</span>
+                <span class="choice-pt visible">Hall de Entrada (Arthur, o Mordomo)</span>
+            </button>
+            <button class="retro-btn choice-btn" onclick="goToRoom('study')">
+                <span class="choice-en">📚 Lord Blackwood's Study (Crime Scene)</span>
+                <span class="choice-pt visible">Escritório do Lorde Blackwood (Cena do Crime)</span>
+            </button>
+            <button class="retro-btn choice-btn" onclick="goToRoom('kitchen')">
+                <span class="choice-en">🔪 Manor Kitchen (Chef Pierre)</span>
+                <span class="choice-pt visible">Cozinha da Mansão (Chef Pierre)</span>
+            </button>
+            <button class="retro-btn choice-btn" onclick="goToRoom('parlor')">
+                <span class="choice-en">🍷 Velvet Parlor (Lady Evelyn, the Heiress)</span>
+                <span class="choice-pt visible">Salão de Veludo (Lady Evelyn, a Herdeira)</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toast">NEW CLUE ADDED!</div>
+
+<script>
+    // ==========================================
+    // 1. SISTEMA DE ÁUDIO RETRÔ (WEB AUDIO API)
+    // ==========================================
+    let audioCtx = null;
+    let isMuted = false;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playSound(type) {
+        if (isMuted) return;
+        initAudio();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'click') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(440, now);
+            osc.frequency.exponentialRampToValueAtTime(660, now + 0.06);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+            osc.start(now);
+            osc.stop(now + 0.06);
+        } else if (type === 'blip') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(320 + Math.random() * 80, now);
+            gain.gain.setValueAtTime(0.03, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+            osc.start(now);
+            osc.stop(now + 0.03);
+        } else if (type === 'clue') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(523.25, now); // C5
+            osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+            osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+            osc.frequency.setValueAtTime(1046.50, now + 0.3); // C6
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+            osc.start(now);
+            osc.stop(now + 0.45);
+        } else if (type === 'error') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(180, now);
+            osc.frequency.linearRampToValueAtTime(110, now + 0.25);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+            osc.start(now);
+            osc.stop(now + 0.25);
+        }
+    }
+
+    function toggleMute() {
+        isMuted = !isMuted;
+        const btn = document.getElementById('btn-sound');
+        btn.textContent = isMuted ? '🔇 MUTE' : '🔊 SFX';
+        btn.classList.toggle('danger', isMuted);
+        if (!isMuted) playSound('click');
+    }
+
+    // ==========================================
+    // 2. ESTADO DO JOGO & PISTAS
+    // ==========================================
+    const gameState = {
+        currentRoom: 'hall',
+        showPortuguese: false,
+        clues: [],
+        flags: {
+            talkedButler: false,
+            searchedDesk: false,
+            checkedClock: false,
+            talkedChef: false,
+            checkedTrash: false,
+            talkedEvelyn: false,
+            confrontedEvelyn: false
+        }
+    };
+
+    const CLUES_DB = {
+        broken_watch: {
+            id: 'broken_watch',
+            nameEn: '⌚ Broken Pocket Watch',
+            namePt: 'Relógio de Bolso Quebrado',
+            descEn: 'Stopped at 11:45 PM. Found on the study floor near the body.',
+            descPt: 'Parado às 23:45. Encontrado no chão do escritório perto do corpo.'
+        },
+        torn_will: {
+            id: 'torn_will',
+            nameEn: '📜 Draft of a New Will',
+            namePt: 'Rascunho de um Novo Testamento',
+            descEn: 'Lord Blackwood planned to cut Lady Evelyn out of his inheritance tomorrow.',
+            descPt: 'Lorde Blackwood planejava deixar Lady Evelyn fora da herança amanhã.'
+        },
+        poison_vial: {
+            id: 'poison_vial',
+            nameEn: '🧪 Empty Bitter Almond Vial',
+            namePt: 'Frasco Vazio de Amêndoas Amargas',
+            descEn: 'Found hidden in the kitchen trash. Smells like cyanide.',
+            descPt: 'Encontrado escondido no lixo da cozinha. Cheira a cianeto.'
+        },
+        stained_glove: {
+            id: 'stained_glove',
+            nameEn: '🧤 Velvet Glove with Wine & Ash',
+            namePt: 'Luva de Veludo com Vinho e Cinzas',
+            descEn: 'A purple lady\'s glove smelling of fireplace ash and red wine.',
+            descPt: 'Uma luva feminina roxa com cheiro de cinzas da lareira e vinho tinto.'
+        }
+    };
+
+    function addClue(clueId) {
+        if (!gameState.clues.includes(clueId)) {
+            gameState.clues.push(clueId);
+            playSound('clue');
+            updateUIStats();
+            showToast(`CLUE FOUND: ${CLUES_DB[clueId].nameEn}`);
+        }
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.style.display = 'block';
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 3000);
+    }
+
+    // ==========================================
+    // 3. CENÁRIOS PIXEL ART (SVG GERADO)
+    // ==========================================
+    function renderScene(sceneId) {
+        const svg = document.getElementById('scene-svg');
+        let content = '';
+
+        // Fundo base atmosférico
+        if (sceneId === 'hall') {
+            // Hall de Entrada com Escadaria e Mordomo
+            content = `
+                <rect width="320" height="140" fill="#1b1926"/>
+                <!-- Papel de parede -->
+                <rect x="0" y="0" width="320" height="95" fill="#2a2338"/>
+                <!-- Escadaria -->
+                <polygon points="90,95 120,40 200,40 230,95" fill="#3d2922"/>
+                <rect x="115" y="40" width="90" height="6" fill="#5e3f34"/>
+                <rect x="110" y="52" width="100" height="6" fill="#5e3f34"/>
+                <rect x="105" y="64" width="110" height="6" fill="#5e3f34"/>
+                <rect x="100" y="76" width="120" height="6" fill="#5e3f34"/>
+                <rect x="95" y="88" width="130" height="7" fill="#5e3f34"/>
+                <!-- Tapete Vermelho -->
+                <polygon points="130,95 190,95 215,140 105,140" fill="#8f242c"/>
+                <!-- Quadro na parede -->
+                <rect x="35" y="25" width="36" height="45" fill="#f4b41b"/>
+                <rect x="39" y="29" width="28" height="37" fill="#14141f"/>
+                <circle cx="53" cy="43" r="6" fill="#d9a066"/>
+                <rect x="45" y="51" width="16" height="15" fill="#4b5bab"/>
+                <!-- Candelabro -->
+                <rect x="158" y="0" width="4" height="15" fill="#f4b41b"/>
+                <rect x="142" y="15" width="36" height="4" fill="#f4b41b"/>
+                <circle cx="144" cy="12" r="3" fill="#ffec27"/>
+                <circle cx="176" cy="12" r="3" fill="#ffec27"/>
+                <!-- Mordomo Arthur (Pixel Sprite) -->
+                <g transform="translate(230, 52)">
+                    <rect x="10" y="18" width="24" height="42" fill="#111116"/> <!-- Terno -->
+                    <polygon points="18,18 26,18 22,32" fill="#ffffff"/> <!-- Camisa -->
+                    <rect x="21" y="20" width="2" height="2" fill="#e43b44"/> <!-- Gravata borboleta -->
+                    <rect x="14" y="2" width="16" height="16" fill="#eec39a"/> <!-- Rosto -->
+                    <rect x="14" y="0" width="16" height="5" fill="#9badb7"/> <!-- Cabelo grisalho -->
+                    <rect x="17" y="8" width="2" height="2" fill="#000"/> <!-- Olho -->
+                    <rect x="25" y="8" width="2" height="2" fill="#000"/> <!-- Olho -->
+                    <rect x="12" y="60" width="8" height="18" fill="#0a0a0f"/> <!-- Perna -->
+                    <rect x="24" y="60" width="8" height="18" fill="#0a0a0f"/> <!-- Perna -->
+                </g>
+            `;
+        } else if (sceneId === 'study') {
+            // Escritório / Cena do Crime
+            content = `
+                <rect width="320" height="140" fill="#1f1716"/>
+                <!-- Estante de Livros -->
+                <rect x="15" y="15" width="85" height="85" fill="#3e2723"/>
+                <rect x="20" y="22" width="75" height="16" fill="#1a1110"/>
+                <rect x="22" y="24" width="8" height="14" fill="#e43b44"/>
+                <rect x="32" y="25" width="10" height="13" fill="#38b764"/>
+                <rect x="44" y="23" width="7" height="15" fill="#3b5dc9"/>
+                <rect x="55" y="24" width="12" height="14" fill="#f4b41b"/>
+                <rect x="20" y="45" width="75" height="16" fill="#1a1110"/>
+                <rect x="25" y="47" width="9" height="14" fill="#8f563b"/>
+                <rect x="36" y="46" width="11" height="15" fill="#73eff7"/>
+                <!-- Janela com Chuva -->
+                <rect x="220" y="18" width="65" height="55" fill="#0f1c2e" stroke="#5e3f34" stroke-width="4"/>
+                <line x1="252" y1="18" x2="252" y2="73" stroke="#5e3f34" stroke-width="3"/>
+                <line x1="220" y1="45" x2="285" y2="45" stroke="#5e3f34" stroke-width="3"/>
+                <circle cx="268" cy="30" r="6" fill="#f4f4f4" opacity="0.8"/> <!-- Lua -->
+                <!-- Escrivaninha -->
+                <rect x="105" y="68" width="105" height="35" fill="#5e3f34"/>
+                <rect x="100" y="65" width="115" height="6" fill="#8f563b"/>
+                <!-- Taça derrubada na mesa -->
+                <rect x="130" y="59" width="8" height="6" fill="#f4b41b"/>
+                <ellipse cx="145" cy="64" rx="10" ry="2" fill="#8f242c"/>
+                <!-- Papel na mesa -->
+                <rect x="165" y="61" width="16" height="4" fill="#fff"/>
+                <!-- Contorno de Giz no Chão (Cena do Crime) -->
+                <ellipse cx="155" cy="120" rx="45" ry="12" fill="none" stroke="#ffffff" stroke-width="2" stroke-dasharray="4,3"/>
+                <circle cx="120" cy="118" r="6" fill="none" stroke="#ffffff" stroke-width="2" stroke-dasharray="3,2"/>
+            `;
+        } else if (sceneId === 'kitchen') {
+            // Cozinha e Chef Pierre
+            content = `
+                <rect width="320" height="140" fill="#1e242b"/>
+                <!-- Azulejos -->
+                <rect x="0" y="0" width="320" height="90" fill="#2c3540"/>
+                <line x1="0" y1="30" x2="320" y2="30" stroke="#1e242b" stroke-width="2"/>
+                <line x1="0" y1="60" x2="320" y2="60" stroke="#1e242b" stroke-width="2"/>
+                <!-- Fogão e Panelas -->
+                <rect x="20" y="55" width="75" height="45" fill="#4b5bab"/>
+                <rect x="25" y="48" width="25" height="7" fill="#9badb7"/>
+                <ellipse cx="37" cy="46" rx="14" ry="4" fill="#fff" opacity="0.3"/> <!-- Vapor -->
+                <!-- Lixeira no canto -->
+                <rect x="260" y="68" width="28" height="34" fill="#5a6988"/>
+                <rect x="258" y="64" width="32" height="5" fill="#8b9bb4"/>
+                <!-- Balcão -->
+                <rect x="105" y="75" width="130" height="35" fill="#5e3f34"/>
+                <!-- Chef Pierre -->
+                <g transform="translate(145, 28)">
+                    <rect x="12" y="-8" width="20" height="14" fill="#ffffff"/> <!-- Chapéu Chef -->
+                    <circle cx="15" cy="-8" r="6" fill="#ffffff"/>
+                    <circle cx="29" cy="-8" r="6" fill="#ffffff"/>
+                    <rect x="14" y="6" width="16" height="15" fill="#eec39a"/> <!-- Rosto -->
+                    <rect x="16" y="16" width="12" height="3" fill="#3e2723"/> <!-- Bigode -->
+                    <rect x="17" y="11" width="2" height="2" fill="#000"/>
+                    <rect x="25" y="11" width="2" height="2" fill="#000"/>
+                    <rect x="8" y="21" width="28" height="30" fill="#ffffff"/> <!-- Dólmã -->
+                    <rect x="16" y="24" width="12" height="4" fill="#e43b44"/> <!-- Lenço -->
+                </g>
+            `;
+        } else if (sceneId === 'parlor') {
+            // Salão de Veludo e Lady Evelyn
+            content = `
+                <rect width="320" height="140" fill="#21121d"/>
+                <!-- Lareira -->
+                <rect x="25" y="35" width="75" height="65" fill="#4a252c"/>
+                <rect x="42" y="55" width="40" height="45" fill="#12090d"/>
+                <!-- Fogo na Lareira -->
+                <polygon points="50,98 62,68 74,98" fill="#e43b44"/>
+                <polygon points="55,98 62,78 69,98" fill="#f4b41b"/>
+                <!-- Sofá de Veludo -->
+                <rect x="125" y="70" width="130" height="35" fill="#7a1c3b" rx="4"/>
+                <rect x="120" y="62" width="140" height="15" fill="#9e284f" rx="3"/>
+                <!-- Lady Evelyn -->
+                <g transform="translate(170, 36)">
+                    <rect x="12" y="2" width="20" height="22" fill="#f4b41b"/> <!-- Cabelo loiro -->
+                    <rect x="14" y="5" width="16" height="15" fill="#f7d5b5"/> <!-- Rosto -->
+                    <rect x="17" y="10" width="2" height="2" fill="#3b5dc9"/>
+                    <rect x="25" y="10" width="2" height="2" fill="#3b5dc9"/>
+                    <polygon points="10,20 34,20 38,52 6,52" fill="#68386c"/> <!-- Vestido Roxo -->
+                    <rect x="18" y="21" width="8" height="3" fill="#73eff7"/> <!-- Colar -->
+                    <!-- Taça de Vinho na mão -->
+                    <rect x="36" y="26" width="6" height="7" fill="#e43b44"/>
+                    <line x1="39" y1="33" x2="39" y2="39" stroke="#fff" stroke-width="1"/>
+                </g>
+            `;
+        }
+
+        svg.innerHTML = content;
+    }
+
+    // ==========================================
+    // 4. ROTEIRO E DIÁLOGOS INTERATIVOS (INGLÊS + PT)
+    // ==========================================
+    const DIALOGUES = {
+        // --- HALL DE ENTRADA (MORDOMO) ---
+        hall_intro: {
+            room: 'hall',
+            roomLabel: 'ENTRANCE HALL',
+            speaker: 'ARTHUR (THE BUTLER)',
+            en: '"Good evening, Detective. Thank goodness you arrived. Lord Blackwood was found dead in his study an hour ago!"',
+            pt: '"Boa noite, Detetive. Graças a Deus você chegou. Lorde Blackwood foi encontrado morto em seu escritório há uma hora!"',
+            hint: '💡 Vocab: "Thank goodness" = Graças a Deus | "Study" = Escritório',
+            choices: [
+                {
+                    en: '"Take me to the study immediately."',
+                    pt: '"Leve-me ao escritório imediatamente."',
+                    action: () => {
+                        gameState.flags.talkedButler = true;
+                        goToRoom('study');
+                    }
+                },
+                {
+                    en: '"Who else is in the manor tonight?"',
+                    pt: '"Quem mais está na mansão esta noite?"',
+                    next: 'hall_suspects'
+                },
+                {
+                    en: '"Where were you at the time of the murder?"',
+                    pt: '"Onde você estava na hora do assassinato?"',
+                    next: 'hall_alibi'
+                }
+            ]
+        },
+        hall_suspects: {
+            room: 'hall',
+            roomLabel: 'ENTRANCE HALL',
+            speaker: 'ARTHUR (THE BUTLER)',
+            en: '"Only two people: Lady Evelyn, his niece and sole heiress, in the parlor, and Chef Pierre in the kitchen."',
+            pt: '"Apenas duas pessoas: Lady Evelyn, sua sobrinha e única herdeira, no salão, e o Chef Pierre na cozinha."',
+            hint: '💡 Vocab: "Sole heiress" = Única herdeira | "Parlor" = Salão',
+            choices: [
+                {
+                    en: '"Let\'s examine the crime scene in the study."',
+                    pt: '"Vamos examinar a cena do crime no escritório."',
+                    action: () => goToRoom('study')
+                },
+                {
+                    en: '"Ask about Arthur\'s alibi."',
+                    pt: '"Perguntar sobre o álibi de Arthur."',
+                    next: 'hall_alibi'
+                }
+            ]
+        },
+        hall_alibi: {
+            room: 'hall',
+            roomLabel: 'ENTRANCE HALL',
+            speaker: 'ARTHUR (THE BUTLER)',
+            en: '"I was polishing the silver in the dining room. I heard a loud crash from the study around midnight."',
+            pt: '"Eu estava polindo a prataria na sala de jantar. Ouvi um estrondo alto vindo do escritório por volta da meia-noite."',
+            hint: '💡 Vocab: "Loud crash" = Estrondo alto | "Around midnight" = Por volta da meia-noite',
+            choices: [
+                {
+                    en: '"I see. Let\'s check the study now."',
+                    pt: '"Entendi. Vamos verificar o escritório agora."',
+                    action: () => goToRoom('study')
+                },
+                {
+                    en: '"Open the Manor Map to explore."',
+                    pt: '"Abrir o Mapa da Mansão para explorar."',
+                    action: () => openModal('map-modal')
+                }
+            ]
+        },
+
+        // --- ESCRITÓRIO (CENA DO CRIME) ---
+        study_main: {
+            room: 'study',
+            roomLabel: 'LORD\'S STUDY',
+            speaker: 'INVESTIGATION',
+            en: 'The study smells of burnt paper and red wine. A chalk outline marks where Lord Blackwood collapsed near his desk.',
+            pt: 'O escritório cheira a papel queimado e vinho tinto. Um contorno de giz marca onde Lorde Blackwood caiu perto de sua mesa.',
+            hint: '💡 Vocab: "Burnt paper" = Papel queimado | "Collapsed" = Caiu / desmaiou',
+            choices: [
+                {
+                    en: '🔍 Inspect the floor near the chalk outline.',
+                    pt: 'Inspecionar o chão perto do contorno de giz.',
+                    next: 'study_floor'
+                },
+                {
+                    en: '📄 Search the wooden desk and papers.',
+                    pt: 'Vasculhar a escrivaninha de madeira e os papéis.',
+                    next: 'study_desk'
+                },
+                {
+                    en: '🍷 Smell the spilled wine goblet.',
+                    pt: 'Cheirar a taça de vinho derramada.',
+                    next: 'study_wine'
+                },
+                {
+                    en: '🗺️ Move to another room.',
+                    pt: 'Ir para outro cômodo.',
+                    action: () => openModal('map-modal')
+                }
+            ]
+        },
+        study_floor: {
+            room: 'study',
+            roomLabel: 'LORD\'S STUDY',
+            speaker: 'CLUE DISCOVERED',
+            en: 'Under the edge of the rug, you find a shattered gold pocket watch. The glass is cracked, stopping the hands at 11:45 PM!',
+            pt: 'Sob a ponta do tapete, você encontra um relógio de bolso de ouro quebrado. O vidro rachou, parando os ponteiros às 23:45!',
+            hint: '💡 Vocab: "Shattered" = Estilhaçado / quebrado | "Hands (of a clock)" = Ponteiros',
+            onEnter: () => addClue('broken_watch'),
+            choices: [
+                {
+                    en: '"Interesting... Arthur said he heard a crash at midnight, not 11:45."',
+                    pt: '"Interessante... Arthur disse que ouviu um barulho à meia-noite, não às 23:45."',
+                    next: 'study_main'
+                }
+            ]
+        },
+        study_desk: {
+            room: 'study',
+            roomLabel: 'LORD\'S STUDY',
+            speaker: 'CLUE DISCOVERED',
+            en: 'On the desk lies an unsigned legal document: "I hereby disinherit my niece, Evelyn Blackwood, effective tomorrow."',
+            pt: 'Sobre a mesa há um documento legal sem assinatura: "Por meio deste, deserdo minha sobrinha, Evelyn Blackwood, a partir de amanhã."',
+            hint: '💡 Vocab: "Hereby" = Por meio deste | "Disinherit" = Deserdar',
+            onEnter: () => addClue('torn_will'),
+            choices: [
+                {
+                    en: '"A strong motive! Evelyn was about to lose millions."',
+                    pt: '"Um motivo forte! Evelyn estava prestes a perder milhões."',
+                    next: 'study_main'
+                }
+            ]
+        },
+        study_wine: {
+            room: 'study',
+            roomLabel: 'LORD\'S STUDY',
+            speaker: 'OBSERVATION',
+            en: 'Beneath the sweet aroma of expensive red wine, there is a faint, sharp scent of bitter almonds. Poison!',
+            pt: 'Por baixo do aroma doce do vinho tinto caro, há um cheiro fraco e penetrante de amêndoas amargas. Veneno!',
+            hint: '💡 Vocab: "Faint scent" = Cheiro fraco | "Bitter almonds" = Amêndoas amargas',
+            choices: [
+                {
+                    en: '"I should check the kitchen and talk to Chef Pierre."',
+                    pt: '"Devo verificar a cozinha e falar com o Chef Pierre."',
+                    action: () => goToRoom('kitchen')
+                },
+                {
+                    en: '"Continue searching the study."',
+                    pt: '"Continuar vasculhando o escritório."',
+                    next: 'study_main'
+                }
+            ]
+        },
+
+        // --- COZINHA (CHEF PIERRE) ---
+        kitchen_main: {
+            room: 'kitchen',
+            roomLabel: 'MANOR KITCHEN',
+            speaker: 'CHEF PIERRE',
+            en: '"Mon Dieu! Is it true, Detective? Lord Blackwood is dead? I only served him his evening glass of wine at 11:30 PM!"',
+            pt: '"Meu Deus! É verdade, Detetive? Lorde Blackwood está morto? Eu apenas servi sua taça de vinho noturna às 23:30!"',
+            hint: '💡 Vocab: "Evening glass" = Taça da noite | "Served" = Servi',
+            choices: [
+                {
+                    en: '"Did anyone else touch that wine bottle?"',
+                    pt: '"Alguém mais tocou naquela garrafa de vinho?"',
+                    next: 'kitchen_wine'
+                },
+                {
+                    en: '🗑️ Inspect the metal trash bin in the corner.',
+                    pt: 'Inspecionar a lixeira de metal no canto.',
+                    next: 'kitchen_trash'
+                },
+                {
+                    en: '🗺️ Leave the kitchen.',
+                    pt: 'Sair da cozinha.',
+                    action: () => openModal('map-modal')
+                }
+            ]
+        },
+        kitchen_wine: {
+            room: 'kitchen',
+            roomLabel: 'MANOR KITCHEN',
+            speaker: 'CHEF PIERRE',
+            en: '"I left the tray on the hall table for two minutes to check my soufflé. Lady Evelyn was walking right past it!"',
+            pt: '"Deixei a bandeja na mesa do corredor por dois minutos para checar meu suflê. Lady Evelyn estava passando bem ao lado!"',
+            hint: '💡 Vocab: "Tray" = Bandeja | "Walking past" = Passando ao lado',
+            choices: [
+                {
+                    en: '"Check the kitchen trash bin."',
+                    pt: '"Verificar a lixeira da cozinha."',
+                    next: 'kitchen_trash'
+                },
+                {
+                    en: '"Go confront Lady Evelyn in the Parlor."',
+                    pt: '"Ir confrontar Lady Evelyn no Salão."',
+                    action: () => goToRoom('parlor')
+                }
+            ]
+        },
+        kitchen_trash: {
+            room: 'kitchen',
+            roomLabel: 'MANOR KITCHEN',
+            speaker: 'CLUE DISCOVERED',
+            en: 'Buried under potato peels, you pull out a tiny glass vial labeled "Cyanide". Someone threw it here to frame the Chef!',
+            pt: 'Enterrado sob cascas de batata, você tira um pequeno frasco de vidro rotulado "Cianeto". Alguém jogou aqui para incriminar o Chef!',
+            hint: '💡 Vocab: "Buried" = Enterrado | "Frame (someone)" = Incriminar alguém injustamente',
+            onEnter: () => addClue('poison_vial'),
+            choices: [
+                {
+                    en: '"The killer tried to frame Pierre. Let\'s talk to Lady Evelyn!"',
+                    pt: '"O assassino tentou incriminar Pierre. Vamos falar com Lady Evelyn!"',
+                    action: () => goToRoom('parlor')
+                }
+            ]
+        },
+
+        // --- SALÃO DE VELUDO (LADY EVELYN) ---
+        parlor_main: {
+            room: 'parlor',
+            roomLabel: 'VELVET PARLOR',
+            speaker: 'LADY EVELYN',
+            en: '"How tragic... Poor Uncle Blackwood. I have been sitting by this fireplace reading poetry all evening, Detective."',
+            pt: '"Que trágico... Pobre Tio Blackwood. Estive sentada perto desta lareira lendo poesia a noite toda, Detetive."',
+            hint: '💡 Vocab: "Fireplace" = Lareira | "All evening" = A noite toda',
+            choices: [
+                {
+                    en: '"Did you know he was going to disinherit you?"',
+                    pt: '"Você sabia que ele ia deserdar você?"',
+                    next: 'parlor_will'
+                },
+                {
+                    en: '🔥 Look closely near the fireplace hearth.',
+                    pt: 'Olhar de perto perto da lareira.',
+                    next: 'parlor_glove'
+                },
+                {
+                    en: '🗺️ Move to another room.',
+                    pt: 'Ir para outro cômodo.',
+                    action: () => openModal('map-modal')
+                }
+            ]
+        },
+        parlor_will: {
+            room: 'parlor',
+            roomLabel: 'VELVET PARLOR',
+            speaker: 'LADY EVELYN',
+            en: '"W-what?! That is absurd! Uncle loved me! Why would you accuse me of such a thing?"',
+            pt: '"O-o quê?! Isso é absurdo! O tio me amava! Por que você me acusaria de uma coisa dessas?"',
+            hint: '💡 Vocab: "Absurd" = Absurdo | "Accuse" = Acusar',
+            choices: [
+                {
+                    en: '🔥 Inspect the fireplace floor.',
+                    pt: 'Inspecionar o chão da lareira.',
+                    next: 'parlor_glove'
+                },
+                {
+                    en: '"I have heard enough for now."',
+                    pt: '"Já ouvi o suficiente por enquanto."',
+                    next: 'parlor_main'
+                }
+            ]
+        },
+        parlor_glove: {
+            room: 'parlor',
+            roomLabel: 'VELVET PARLOR',
+            speaker: 'CLUE DISCOVERED',
+            en: 'Half-burned in the ashes, you retrieve a purple velvet glove. It has a fresh red wine stain on the fingertips!',
+            pt: 'Meio queimada nas cinzas, você recupera uma luva de veludo roxa. Ela tem uma mancha fresca de vinho tinto nas pontas dos dedos!',
+            hint: '💡 Vocab: "Half-burned" = Meio queimada | "Fingertips" = Pontas dos dedos',
+            onEnter: () => addClue('stained_glove'),
+            choices: [
+                {
+                    en: '"A purple glove matching your dress... with wine stains!"',
+                    pt: '"Uma luva roxa combinando com seu vestido... com manchas de vinho!"',
+                    next: 'parlor_cornered'
+                }
+            ]
+        },
+        parlor_cornered: {
+            room: 'parlor',
+            roomLabel: 'VELVET PARLOR',
+            speaker: 'LADY EVELYN',
+            en: '"I... I dropped my glove earlier! You have no proof! Who do you think you are?!"',
+            pt: '"Eu... eu deixei minha luva cair mais cedo! Você não tem provas! Quem você pensa que é?!"',
+            hint: '💡 Vocab: "Dropped" = Deixei cair | "Proof" = Provas',
+            choices: [
+                {
+                    en: '⚖️ I am ready to solve the mystery!',
+                    pt: 'Estou pronto para resolver o mistério!',
+                    action: () => startAccusation()
+                },
+                {
+                    en: '🗺️ Check other rooms first.',
+                    pt: 'Verificar outros cômodos primeiro.',
+                    action: () => openModal('map-modal')
+                }
+            ]
+        },
+
+        // --- ACUSAÇÃO FINAL ---
+        accusation_start: {
+            room: 'hall',
+            roomLabel: 'FINAL DEDUCTION',
+            speaker: 'DETECTIVE (YOU)',
+            en: '"Everyone, gather in the Entrance Hall! I have examined the evidence and I know who killed Lord Blackwood."',
+            pt: '"Todos, reúnam-se no Hall de Entrada! Examinei as evidências e sei quem matou Lorde Blackwood."',
+            hint: '💡 Vocab: "Gather" = Reúnam-se | "Evidence" = Evidências',
+            choices: [
+                {
+                    en: '👉 Accuse Arthur, the Butler.',
+                    pt: 'Acusar Arthur, o Mordomo.',
+                    next: 'ending_wrong_butler'
+                },
+                {
+                    en: '👉 Accuse Chef Pierre.',
+                    pt: 'Acusar o Chef Pierre.',
+                    next: 'ending_wrong_chef'
+                },
+                {
+                    en: '👉 Accuse Lady Evelyn, the Heiress.',
+                    pt: 'Acusar Lady Evelyn, a Herdeira.',
+                    next: 'ending_correct'
+                }
+            ]
+        },
+
+        // --- FINAIS ---
+        ending_wrong_butler: {
+            room: 'hall',
+            roomLabel: 'CASE FAILED',
+            speaker: 'ARTHUR (THE BUTLER)',
+            en: '"Me?! Why would I kill the man who employed me for 40 years? While you arrested me, the real killer escaped into the night!"',
+            pt: '"Eu?! Por que eu mataria o homem que me empregou por 40 anos? Enquanto você me prendia, o verdadeiro assassino fugiu na noite!"',
+            hint: '❌ Final Incorreto! Tente novamente e revise as pistas.',
+            choices: [
+                {
+                    en: '🔄 Try the accusation again.',
+                    pt: 'Tentar a acusação novamente.',
+                    next: 'accusation_start'
+                },
+                {
+                    en: '🔍 Go back and gather more clues.',
+                    pt: 'Voltar e coletar mais pistas.',
+                    action: () => openModal('map-modal')
+                }
+            ]
+        },
+        ending_wrong_chef: {
+            room: 'hall',
+            roomLabel: 'CASE FAILED',
+            speaker: 'CHEF PIERRE',
+            en: '"Sacrebleu! I am an artist, not a murderer! The poison vial in my trash was planted! The real killer slipped away!"',
+            pt: '"Sacrebleu! Sou um artista, não um assassino! O frasco de veneno no meu lixo foi plantado! O verdadeiro assassino escapou!"',
+            hint: '❌ Final Incorreto! Quem tinha motivo e tentou queimar uma luva?',
+            choices: [
+                {
+                    en: '🔄 Try the accusation again.',
+                    pt: 'Tentar a acusação novamente.',
+                    next: 'accusation_start'
+                },
+                {
+                    en: '🔍 Go back and gather more clues.',
+                    pt: 'Voltar e coletar mais pistas.',
+                    action: () => openModal('map-modal')
+                }
+            ]
+        },
+        ending_correct: {
+            room: 'hall',
+            roomLabel: 'MYSTERY SOLVED!',
+            speaker: 'CASE CLOSED 🏆',
+            en: '"It was you, Lady Evelyn! You found out about the new will, poisoned his wine at 11:45 PM, hid the vial in the kitchen, and tried to burn your stained glove!"',
+            pt: '"Foi você, Lady Evelyn! Você descobriu sobre o novo testamento, envenenou o vinho às 23:45, escondeu o frasco na cozinha e tentou queimar sua luva manchada!"',
+            hint: '🎉 PARABÉNS! Você solucionou o Mistério da Mansão Blackwood!',
+            onEnter: () => playSound('clue'),
+            choices: [
+                {
+                    en: '🔄 Play Again from the Beginning',
+                    pt: 'Jogar Novamente desde o Início',
+                    action: () => resetGame()
+                }
+            ]
+        }
+    };
+
+    // ==========================================
+    // 5. MOTOR DE RENDERIZAÇÃO E CONTROLE DE UI
+    // ==========================================
+    let typingInterval = null;
+
+    function startGame() {
+        initAudio();
+        playSound('clue');
+        document.getElementById('start-screen').style.display = 'none';
+        loadNode('hall_intro');
+    }
+
+    function resetGame() {
+        gameState.clues = [];
+        gameState.currentRoom = 'hall';
+        updateUIStats();
+        playSound('click');
+        loadNode('hall_intro');
+    }
+
+    function goToRoom(roomId) {
+        closeModals();
+        playSound('click');
+        gameState.currentRoom = roomId;
+
+        if (roomId === 'hall') loadNode('hall_intro');
+        else if (roomId === 'study') loadNode('study_main');
+        else if (roomId === 'kitchen') loadNode('kitchen_main');
+        else if (roomId === 'parlor') loadNode('parlor_main');
+    }
+
+    function startAccusation() {
+        closeModals();
+        playSound('clue');
+        loadNode('accusation_start');
+    }
+
+    function loadNode(nodeKey) {
+        const node = DIALOGUES[nodeKey];
+        if (!node) return;
+
+        if (node.onEnter) {
+            node.onEnter();
+        }
+
+        // Atualiza Cena e Localização
+        renderScene(node.room);
+        document.getElementById('location-badge').textContent = node.roomLabel;
+        document.getElementById('speaker-name').textContent = node.speaker;
+
+        // Atualiza Tradução PT
+        document.getElementById('pt-content').textContent = node.pt;
+        document.getElementById('pt-hint').textContent = node.hint || '';
+        const ptBox = document.getElementById('text-pt');
+        if (gameState.showPortuguese) {
+            ptBox.classList.add('visible');
+        } else {
+            ptBox.classList.remove('visible');
+        }
+
+        // Efeito máquina de escrever no texto em inglês
+        const textEnEl = document.getElementById('text-en');
+        if (typingInterval) clearInterval(typingInterval);
+        textEnEl.textContent = '';
+        let i = 0;
+        const fullText = node.en;
+
+        typingInterval = setInterval(() => {
+            textEnEl.textContent += fullText.charAt(i);
+            if (i % 3 === 0) playSound('blip');
+            i++;
+            if (i >= fullText.length) {
+                clearInterval(typingInterval);
+            }
+        }, 16);
+
+        // Renderiza Botões de Escolha
+        const choicesContainer = document.getElementById('choices-container');
+        choicesContainer.innerHTML = '';
+
+        node.choices.forEach(choice => {
+            const btn = document.createElement('button');
+            btn.className = 'retro-btn choice-btn';
+
+            const spanEn = document.createElement('span');
+            spanEn.className = 'choice-en';
+            spanEn.textContent = choice.en;
+
+            const spanPt = document.createElement('span');
+            spanPt.className = 'choice-pt' + (gameState.showPortuguese ? ' visible' : '');
+            spanPt.textContent = choice.pt;
+
+            btn.appendChild(spanEn);
+            btn.appendChild(spanPt);
+
+            btn.onclick = () => {
+                playSound('click');
+                if (choice.action) {
+                    choice.action();
+                } else if (choice.next) {
+                    loadNode(choice.next);
+                }
+            };
+
+            choicesContainer.appendChild(btn);
+        });
+    }
+
+    function toggleTranslation() {
+        gameState.showPortuguese = !gameState.showPortuguese;
+        playSound('click');
+
+        const btn = document.getElementById('btn-translate');
+        btn.textContent = gameState.showPortuguese ? '🇧🇷 PT: ON' : '🇧🇷 PT: OFF';
+        btn.classList.toggle('active', gameState.showPortuguese);
+
+        // Alterna visibilidade na caixa principal
+        const ptBox = document.getElementById('text-pt');
+        ptBox.classList.toggle('visible', gameState.showPortuguese);
+
+        // Alterna visibilidade nas escolhas
+        document.querySelectorAll('#choices-container .choice-pt').forEach(el => {
+            el.classList.toggle('visible', gameState.showPortuguese);
+        });
+    }
+
+    function updateUIStats() {
+        const count = gameState.clues.length;
+        document.getElementById('inv-count').textContent = count;
+        document.getElementById('clue-counter').textContent = `Clues: ${count}/4`;
+
+        // Libera botão de resolver o mistério quando tiver pelo menos 2 pistas
+        const accuseBtn = document.getElementById('btn-accuse');
+        if (count >= 2) {
+            accuseBtn.style.display = 'inline-flex';
+        } else {
+            accuseBtn.style.display = 'none';
+        }
+    }
+
+    function openModal(modalId) {
+        playSound('click');
+        if (modalId === 'inv-modal') {
+            renderInventory();
+        }
+        document.getElementById(modalId).classList.add('open');
+    }
+
+    function closeModals() {
+        playSound('click');
+        document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+    }
+
+    function renderInventory() {
+        const list = document.getElementById('inv-list');
+        if (gameState.clues.length === 0) {
+            list.innerHTML = '<p style="color: var(--text-muted);">No clues collected yet. Search the rooms carefully!</p>';
+            return;
+        }
+
+        list.innerHTML = '';
+        gameState.clues.forEach(id => {
+            const c = CLUES_DB[id];
+            const card = document.createElement('div');
+            card.className = 'clue-card';
+            card.innerHTML = `
+                <div class="clue-title">${c.nameEn} <span style="color: var(--text-pt); font-size: 16px;">(${c.namePt})</span></div>
+                <div class="clue-desc-en">${c.descEn}</div>
+                <div class="clue-desc-pt">${c.descPt}</div>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    // Renderiza cenário inicial de fundo
+    renderScene('hall');
+</script>
+</body>
+</html>
